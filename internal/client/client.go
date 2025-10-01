@@ -5,6 +5,7 @@ import (
 	"paqet/internal/conf"
 	"paqet/internal/flog"
 	"paqet/internal/pkg/iterator"
+	"paqet/internal/tnet"
 	"sync"
 )
 
@@ -19,9 +20,8 @@ func New(cfg *conf.Conf) (*Client, error) {
 	c := &Client{
 		cfg:     cfg,
 		iter:    &iterator.Iterator[*timedConn]{},
-		udpPool: &udpPool{sesses: make(map[uint64]*udpSess)},
+		udpPool: &udpPool{strms: make(map[uint64]tnet.Strm)},
 	}
-	c.udpPool.startGC()
 	return c, nil
 }
 
@@ -35,15 +35,16 @@ func (c *Client) Start(ctx context.Context) error {
 		flog.Debugf("client connection %d established successfully", i+1)
 		c.iter.Items = append(c.iter.Items, tc)
 	}
+	go c.ticker(ctx)
+
 	go func() {
 		<-ctx.Done()
 		for _, tc := range c.iter.Items {
-			tc.Close()
+			tc.close()
 		}
-		c.udpPool.close()
 		flog.Infof("client shutdown complete")
 	}()
 
-	flog.Infof("Client started: %s -> %s (%d connections)", &c.cfg.Network.LocalAddr, c.cfg.Server.Addr, len(c.iter.Items))
+	flog.Infof("Client started: IPv4:%s IPv6:%s -> %s (%d connections)", c.cfg.Network.IPv4.Addr.IP, c.cfg.Network.IPv6.Addr.IP, c.cfg.Server.Addr, len(c.iter.Items))
 	return nil
 }

@@ -1,4 +1,4 @@
-package pconn
+package socket
 
 import (
 	"fmt"

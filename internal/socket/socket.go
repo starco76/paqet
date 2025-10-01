@@ -1,14 +1,14 @@
-package pconn
+package socket
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
 	"math/rand"
 	"net"
 	"os"
 	"paqet/internal/conf"
 	"paqet/internal/flog"
+	"paqet/internal/pkg/hash"
 	"paqet/internal/pkg/iterator"
 	"sync/atomic"
 	"time"
@@ -27,10 +27,14 @@ type PacketConn struct {
 
 // &OpError{Op: "listen", Net: network, Source: nil, Addr: nil, Err: err}
 func New(ctx context.Context, cfg *conf.Network) (*PacketConn, error) {
-	if cfg.LocalAddr.Port == 0 {
-		cfg.LocalAddr.Port = 32768 + rand.Intn(32768)
+	if cfg.Port == 0 {
+		port := 32768 + rand.Intn(32768)
+		cfg.Port = port
+		cfg.IPv4.Addr.Port = port
+		cfg.IPv6.Addr.Port = port
 	}
-	flog.Warnf("PCONN Port: %d", cfg.LocalAddr.Port)
+
+	flog.Warnf("PCONN Port: %d", cfg.Port)
 	sendHandle, err := NewSendHandle(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create send handle on %s: %v", cfg.Interface.Name, err)
@@ -123,11 +127,12 @@ func (c *PacketConn) Close() error {
 }
 
 func (c *PacketConn) LocalAddr() net.Addr {
-	return &net.UDPAddr{
-		IP:   append([]byte(nil), c.cfg.LocalAddr.IP...),
-		Port: c.cfg.LocalAddr.Port,
-		Zone: c.cfg.LocalAddr.Zone,
-	}
+	return nil
+	// return &net.UDPAddr{
+	// 	IP:   append([]byte(nil), c.cfg.PrimaryAddr().IP...),
+	// 	Port: c.cfg.PrimaryAddr().Port,
+	// 	Zone: c.cfg.PrimaryAddr().Zone,
+	// }
 }
 
 func (c *PacketConn) SetDeadline(t time.Time) error {
@@ -152,16 +157,5 @@ func (c *PacketConn) SetDSCP(dscp int) error {
 
 func (c *PacketConn) SetClientTCPF(addr net.Addr, f []conf.TCPF) {
 	a := *addr.(*net.UDPAddr)
-	c.sendHandle.cTCPF[hashIPAddr(a.IP, uint16(a.Port))] = &iterator.Iterator[conf.TCPF]{Items: f}
-}
-
-func hashIPAddr(ip net.IP, port uint16) uint8 {
-	if len(ip) == 4 {
-		hash := uint64(binary.BigEndian.Uint32(ip))<<16 | uint64(port)
-		return uint8(hash)
-	}
-	ip16 := ip.To16()
-	hash := binary.BigEndian.Uint64(ip16[0:8]) ^ binary.BigEndian.Uint64(ip16[8:16])
-	hash = hash ^ (uint64(port) << 48)
-	return uint8(hash)
+	c.sendHandle.cTCPF[hash.IPAddr(a.IP, uint16(a.Port))] = &iterator.Iterator[conf.TCPF]{Items: f}
 }

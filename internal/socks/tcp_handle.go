@@ -47,25 +47,25 @@ func (h *Handler) handleTCPConnect(conn *net.TCPConn, r *socks5.Request) error {
 	}
 	buf = append(buf, byte(addr.Port>>8), byte(addr.Port&0xff))
 	if _, err := conn.Write(buf); err != nil {
-		return flog.WErr(err)
+		return err
 	}
 
 	strm, err := h.client.TCP(r.Address())
 	if err != nil {
-		flog.Errorf("failed to establish stream for %s -> %s: %v", conn.RemoteAddr(), r.Address(), err)
-		return flog.WErr(err)
+		flog.Errorf("SOCKS5 failed to establish stream for %s -> %s: %v", conn.RemoteAddr(), r.Address(), err)
+		return err
 	}
-	flog.Debugf("established stream %d for %s -> %s", strm.SID(), conn.RemoteAddr(), r.Address())
 	defer strm.Close()
+	flog.Debugf("SOCKS5 stream %d established for %s -> %s", strm.SID(), conn.RemoteAddr(), r.Address())
 
 	errCh := make(chan error, 2)
 	go func() {
 		err := buffer.Copy(conn, strm)
-		errCh <- flog.WErr(err)
+		errCh <- err
 	}()
 	go func() {
 		err := buffer.Copy(strm, conn)
-		errCh <- flog.WErr(err)
+		errCh <- err
 	}()
 
 	select {
@@ -73,7 +73,6 @@ func (h *Handler) handleTCPConnect(conn *net.TCPConn, r *socks5.Request) error {
 		if err != nil {
 			flog.Errorf("SOCKS5 stream %d failed for %s -> %s: %v", strm.SID(), conn.RemoteAddr(), r.Address(), err)
 		}
-		return flog.WErr(err)
 	case <-h.ctx.Done():
 		flog.Debugf("SOCKS5 connection %s -> %s closed due to shutdown", conn.RemoteAddr(), r.Address())
 	}

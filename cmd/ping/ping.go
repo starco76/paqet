@@ -3,7 +3,7 @@ package ping
 import (
 	"log"
 	"paqet/internal/conf"
-	"paqet/internal/pconn"
+	"paqet/internal/socket"
 
 	"github.com/spf13/cobra"
 )
@@ -35,13 +35,13 @@ func sendPacket() {
 	if cfg.Role != "client" {
 		log.Fatalf("Ping command requires client configuration")
 	}
-	sendHandle, err := pconn.NewSendHandle(&cfg.Network)
+	sendHandle, err := socket.NewSendHandle(&cfg.Network)
 	if err != nil {
 		log.Fatalf("Failed to create raw socket: %v", err)
 	}
 	defer sendHandle.Close()
 
-	log.Printf("Sending packet from %s to %s via %s...", cfg.Network.LocalAddr.String(), cfg.Server.Addr.String(), cfg.Network.Interface.Name)
+	log.Printf("Sending packet from IPv4:%s IPv6:%s to %s via %s...", cfg.Network.IPv4.Addr.IP, cfg.Network.IPv6.Addr.IP, cfg.Server.Addr.String(), cfg.Network.Interface.Name)
 	log.Printf("Payload: \"%s\" (%d bytes)", payload, len(payload))
 
 	if err := sendHandle.Write([]byte(payload), cfg.Server.Addr); err != nil {
@@ -49,12 +49,3 @@ func sendPacket() {
 	}
 	log.Printf("Packet sent successfully!")
 }
-
-// func randomUint32() uint32 {
-// 	var b [4]byte
-// 	_, err := rand.Read(b[:])
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	return binary.BigEndian.Uint32(b[:])
-// }

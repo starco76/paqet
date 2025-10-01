@@ -6,16 +6,16 @@ import (
 	"paqet/internal/flog"
 	"paqet/internal/pkg/buffer"
 	"paqet/internal/protocol"
-	"paqet/internal/tr"
+	"paqet/internal/tnet"
 	"time"
 )
 
-func (s *Server) handleTCPProtocol(ctx context.Context, strm tr.Strm, p *protocol.Proto) error {
+func (s *Server) handleTCPProtocol(ctx context.Context, strm tnet.Strm, p *protocol.Proto) error {
 	flog.Infof("accepted TCP stream %d: %s -> %s", strm.SID(), strm.RemoteAddr(), p.Addr.String())
 	return s.handleTCP(ctx, strm, p.Addr.String())
 }
 
-func (s *Server) handleTCP(ctx context.Context, strm tr.Strm, addr string) error {
+func (s *Server) handleTCP(ctx context.Context, strm tnet.Strm, addr string) error {
 	dialer := &net.Dialer{Timeout: 10 * time.Second}
 	conn, err := dialer.DialContext(ctx, "tcp", addr)
 	if err != nil {

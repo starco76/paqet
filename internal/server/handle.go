@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"paqet/internal/flog"
 	"paqet/internal/protocol"
-	"paqet/internal/tr"
+	"paqet/internal/tnet"
 )
 
-func (s *Server) handleConn(ctx context.Context, conn tr.Conn) {
+func (s *Server) handleConn(ctx context.Context, conn tnet.Conn) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -32,7 +32,7 @@ func (s *Server) handleConn(ctx context.Context, conn tr.Conn) {
 	}
 }
 
-func (s *Server) handleStrm(ctx context.Context, strm tr.Strm) error {
+func (s *Server) handleStrm(ctx context.Context, strm tnet.Strm) error {
 	var p protocol.Proto
 	err := p.Read(strm)
 	if err != nil {

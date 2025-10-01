@@ -28,16 +28,14 @@ While `paqet` includes built-in encryption via KCP, it is more complex to config
 
 ```
 [Your App] <------> [paqet Client] <===== Raw TCP Packet =====> [paqet Server] <------> [Target Server]
-(e.g. curl)        (localhost:1080)         (Internet)         (Public IP:PORT)     (e.g. https://httpbin.org)
+(e.g. curl)        (localhost:1080)        (Internet)          (Public IP:PORT)     (e.g. https://httpbin.org)
 ```
 
-## Protocol Overview
+The system operates in three layers: raw TCP packet injection, encrypted transport (KCP), and application-level connection multiplexing.
 
-`paqet` transmits data over raw TCP packets using the KCP transport protocol. The system operates in three layers: raw TCP packet injection, encrypted transport (KCP), and application-level connection multiplexing.
+KCP provides reliable, encrypted communication with aggressive retransmission and forward error correction optimized for high-loss networks. It uses symmetric encryption with a shared secret key and offers multiple congestion control modes with SMUX multiplexing.
 
-KCP provides reliable, encrypted communication over raw TCP packets with aggressive retransmission and forward error correction optimized for high-loss networks, using symmetric encryption with a shared secret key for simple setup and multiple congestion control modes with SMUX multiplexing.
-
-KCP is optimized for real-time applications, gaming, or unpredictable network conditions where simple symmetric key setup and low latency are preferred.
+KCP is optimized for real-time applications, gaming, or unpredictable network conditions where low latency and simple setup are preferred.
 
 ## Getting Started
 

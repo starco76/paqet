@@ -5,19 +5,19 @@ import (
 	"net"
 	"paqet/internal/conf"
 	"paqet/internal/flog"
-	"paqet/internal/pconn"
-	"paqet/internal/tr"
+	"paqet/internal/socket"
+	"paqet/internal/tnet"
 
 	"github.com/xtaci/kcp-go/v5"
 	"github.com/xtaci/smux"
 )
 
-func Dial(addr *net.UDPAddr, cfg *conf.KCP, pConn *pconn.PacketConn) (tr.Conn, error) {
+func Dial(addr *net.UDPAddr, cfg *conf.KCP, pConn *socket.PacketConn) (tnet.Conn, error) {
 	block, err := newBlock(cfg.Block, cfg.Key)
 	if err != nil {
 		return nil, err
 	}
-	flog.Debugf("creating KCP connection to %s", addr)
+
 	conn, err := kcp.NewConn(addr.String(), block, cfg.Dshard, cfg.Pshard, pConn)
 	if err != nil {
 		return nil, fmt.Errorf("connection attempt failed: %v", err)
@@ -29,6 +29,12 @@ func Dial(addr *net.UDPAddr, cfg *conf.KCP, pConn *pconn.PacketConn) (tr.Conn, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to create smux session: %w", err)
 	}
+	// go func() {
+	// 	for {
+	// 		fmt.Println(sess.NumStreams())
+	// 		time.Sleep(1 * time.Second)
+	// 	}
+	// }()
 	flog.Debugf("smux session established successfully")
 	return &Conn{conn, sess}, nil
 }

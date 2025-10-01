@@ -3,22 +3,20 @@ package client
 import (
 	"net"
 	"paqet/internal/flog"
+	"paqet/internal/pkg/hash"
 	"paqet/internal/protocol"
-	"paqet/internal/tr"
-	"time"
+	"paqet/internal/tnet"
 )
 
-func (c *Client) UDP(lAddr, tAddr string) (tr.Strm, bool, uint64, error) {
-	key := c.udpPool.sessKey(lAddr, tAddr)
+func (c *Client) UDP(lAddr, tAddr string) (tnet.Strm, bool, uint64, error) {
+	key := hash.AddrPair(lAddr, tAddr)
 	c.udpPool.mu.RLock()
-	if sess, exists := c.udpPool.sesses[key]; exists {
-		sess.lastActive = time.Now()
+	if strm, exists := c.udpPool.strms[key]; exists {
 		c.udpPool.mu.RUnlock()
-		flog.Debugf("reusing UDP stream %d for %s -> %s", sess.strm.SID(), lAddr, tAddr)
-		return sess.strm, false, key, nil
+		flog.Debugf("reusing UDP stream %d for %s -> %s", strm.SID(), lAddr, tAddr)
+		return strm, false, key, nil
 	}
 	c.udpPool.mu.RUnlock()
-	flog.Debugf("creating new UDP stream for %s -> %s", lAddr, tAddr)
 
 	strm, err := c.newStrm()
 	if err != nil {
@@ -41,13 +39,13 @@ func (c *Client) UDP(lAddr, tAddr string) (tr.Strm, bool, uint64, error) {
 	}
 
 	c.udpPool.mu.Lock()
-	udpSess := udpSess{
-		strm:       strm,
-		lastActive: time.Now(),
-	}
-	c.udpPool.sesses[key] = &udpSess
+	c.udpPool.strms[key] = strm
 	c.udpPool.mu.Unlock()
 
 	flog.Debugf("established UDP stream %d for %s -> %s", strm.SID(), lAddr, tAddr)
 	return strm, true, key, nil
+}
+
+func (c *Client) CloseUDP(key uint64) error {
+	return c.udpPool.delete(key)
 }

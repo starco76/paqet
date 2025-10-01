@@ -6,15 +6,15 @@ import (
 	"paqet/internal/flog"
 	"paqet/internal/pkg/buffer"
 	"paqet/internal/protocol"
-	"paqet/internal/tr"
+	"paqet/internal/tnet"
 )
 
-func (s *Server) handleUDPProtocol(ctx context.Context, strm tr.Strm, p *protocol.Proto) error {
+func (s *Server) handleUDPProtocol(ctx context.Context, strm tnet.Strm, p *protocol.Proto) error {
 	flog.Infof("accepted UDP stream %d: %s -> %s", strm.SID(), strm.RemoteAddr(), p.Addr.String())
 	return s.handleUDP(ctx, strm, p.Addr.String())
 }
 
-func (s *Server) handleUDP(ctx context.Context, strm tr.Strm, addr string) error {
+func (s *Server) handleUDP(ctx context.Context, strm tnet.Strm, addr string) error {
 	conn, err := net.Dial("udp", addr)
 	if err != nil {
 		flog.Errorf("failed to establish UDP connection to %s for stream %d: %v", addr, strm.SID(), err)

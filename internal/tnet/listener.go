@@ -1,4 +1,4 @@
-package tr
+package tnet
 
 import "net"
 

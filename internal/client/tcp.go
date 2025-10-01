@@ -4,11 +4,10 @@ import (
 	"net"
 	"paqet/internal/flog"
 	"paqet/internal/protocol"
-	"paqet/internal/tr"
+	"paqet/internal/tnet"
 )
 
-func (c *Client) TCP(addr string) (tr.Strm, error) {
-	flog.Debugf("creating TCP stream for %s", addr)
+func (c *Client) TCP(addr string) (tnet.Strm, error) {
 	strm, err := c.newStrm()
 	if err != nil {
 		flog.Debugf("failed to create stream for TCP %s: %v", addr, err)

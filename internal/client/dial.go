@@ -2,11 +2,11 @@ package client
 
 import (
 	"paqet/internal/flog"
-	"paqet/internal/tr"
+	"paqet/internal/tnet"
 	"time"
 )
 
-func (c *Client) newConn() (tr.Conn, error) {
+func (c *Client) newConn() (tnet.Conn, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	autoExpire := 300
@@ -24,7 +24,7 @@ func (c *Client) newConn() (tr.Conn, error) {
 	return tc.conn, nil
 }
 
-func (c *Client) newStrm() (tr.Strm, error) {
+func (c *Client) newStrm() (tnet.Strm, error) {
 	conn, err := c.newConn()
 	if err != nil {
 		flog.Debugf("session creation failed, retrying")
@@ -35,6 +35,5 @@ func (c *Client) newStrm() (tr.Strm, error) {
 		flog.Debugf("failed to open stream, retrying: %v", err)
 		return c.newStrm()
 	}
-	flog.Debugf("new stream %d created successfully", strm.SID())
 	return strm, nil
 }

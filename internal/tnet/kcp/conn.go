@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 	"paqet/internal/protocol"
-	"paqet/internal/tr"
+	"paqet/internal/tnet"
 	"time"
 
 	"github.com/xtaci/kcp-go/v5"
@@ -16,7 +16,7 @@ type Conn struct {
 	*smux.Session
 }
 
-func (c *Conn) OpenStrm() (tr.Strm, error) {
+func (c *Conn) OpenStrm() (tnet.Strm, error) {
 	strm, err := c.Session.OpenStream()
 	if err != nil {
 		return nil, err
@@ -24,7 +24,7 @@ func (c *Conn) OpenStrm() (tr.Strm, error) {
 	return &Strm{strm}, nil
 }
 
-func (c *Conn) AcceptStrm() (tr.Strm, error) {
+func (c *Conn) AcceptStrm() (tnet.Strm, error) {
 	strm, err := c.Session.AcceptStream()
 	if err != nil {
 		return nil, err

@@ -1,10 +1,11 @@
-package pconn
+package socket
 
 import (
 	"encoding/binary"
 	"fmt"
 	"net"
 	"paqet/internal/conf"
+	"paqet/internal/pkg/hash"
 	"paqet/internal/pkg/iterator"
 	"sync"
 	"sync/atomic"
@@ -17,14 +18,15 @@ import (
 
 type SendHandle struct {
 	handle     *pcap.Handle
-	srcIP      net.IP
+	srcIP4     conf.Addr
+	srcIP6     conf.Addr
 	srcPort    uint16
 	synOptions []layers.TCPOption
 	ackOptions []layers.TCPOption
 	time       uint32
 	tsCounter  uint32
 	tcpF       iterator.Iterator[conf.TCPF]
-	cTCPF      [256]*iterator.Iterator[conf.TCPF]
+	cTCPF      map[uint64]*iterator.Iterator[conf.TCPF]
 	ethPool    sync.Pool
 	ipv4Pool   sync.Pool
 	ipv6Pool   sync.Pool
@@ -58,18 +60,17 @@ func NewSendHandle(cfg *conf.Network) (*SendHandle, error) {
 
 	sh := &SendHandle{
 		handle:     handle,
-		srcIP:      cfg.LocalAddr.IP,
-		srcPort:    uint16(cfg.LocalAddr.Port),
+		srcIP4:     cfg.IPv4,
+		srcIP6:     cfg.IPv6,
+		srcPort:    uint16(cfg.Port),
 		synOptions: synOptions,
 		ackOptions: ackOptions,
 		tcpF:       iterator.Iterator[conf.TCPF]{Items: cfg.TCP.LF},
+		cTCPF:      make(map[uint64]*iterator.Iterator[conf.TCPF]),
 		time:       uint32(time.Now().UnixNano() / int64(time.Millisecond)),
 		ethPool: sync.Pool{
 			New: func() any {
-				return &layers.Ethernet{
-					SrcMAC: cfg.Interface.HardwareAddr,
-					DstMAC: cfg.Router.HardwareAddr,
-				}
+				return &layers.Ethernet{SrcMAC: cfg.Interface.HardwareAddr}
 			},
 		},
 		ipv4Pool: sync.Pool{
@@ -105,7 +106,7 @@ func (h *SendHandle) buildIPv4Header(dstIP net.IP) *layers.IPv4 {
 		TTL:      64,
 		Flags:    layers.IPv4DontFragment,
 		Protocol: layers.IPProtocolTCP,
-		SrcIP:    h.srcIP,
+		SrcIP:    h.srcIP4.Addr.IP,
 		DstIP:    dstIP,
 	}
 	return ip
@@ -118,7 +119,7 @@ func (h *SendHandle) buildIPv6Header(dstIP net.IP) *layers.IPv6 {
 		TrafficClass: 184,
 		HopLimit:     64,
 		NextHeader:   layers.IPProtocolTCP,
-		SrcIP:        h.srcIP,
+		SrcIP:        h.srcIP6.Addr.IP,
 		DstIP:        dstIP,
 	}
 	return ip
@@ -158,7 +159,7 @@ func (h *SendHandle) buildTCPHeader(dstPort uint16, f conf.TCPF) *layers.TCP {
 }
 
 func (h *SendHandle) getTCPF(dstIP net.IP, dstPort uint16) conf.TCPF {
-	if ff := h.cTCPF[hashIPAddr(dstIP, dstPort)]; ff != nil {
+	if ff := h.cTCPF[hash.IPAddr(dstIP, dstPort)]; ff != nil {
 		return ff.Next()
 	}
 	return h.tcpF.Next()
@@ -186,12 +187,14 @@ func (h *SendHandle) Write(payload []byte, addr *net.UDPAddr) error {
 		defer h.ipv4Pool.Put(ip)
 		ipLayer = ip
 		tcpLayer.SetNetworkLayerForChecksum(ip)
+		ethLayer.DstMAC = h.srcIP4.Router.HardwareAddr
 		ethLayer.EthernetType = layers.EthernetTypeIPv4
 	} else {
 		ip := h.buildIPv6Header(dstIP)
 		defer h.ipv6Pool.Put(ip)
 		ipLayer = ip
 		tcpLayer.SetNetworkLayerForChecksum(ip)
+		ethLayer.DstMAC = h.srcIP6.Router.HardwareAddr
 		ethLayer.EthernetType = layers.EthernetTypeIPv6
 	}
 

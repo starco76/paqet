@@ -5,7 +5,7 @@ import (
 	"net"
 	"paqet/internal/flog"
 	"paqet/internal/pkg/buffer"
-	"paqet/internal/tr"
+	"paqet/internal/tnet"
 	"sync"
 	"time"
 )
@@ -82,7 +82,7 @@ func (f *Forward) handleUDPPacket(ctx context.Context, conn *net.UDPConn) error 
 	return nil
 }
 
-func (f *Forward) handleUDPStrm(ctx context.Context, k uint64, strm tr.Strm, conn *net.UDPConn, caddr *net.UDPAddr) {
+func (f *Forward) handleUDPStrm(ctx context.Context, k uint64, strm tnet.Strm, conn *net.UDPConn, caddr *net.UDPAddr) {
 	defer func() {
 		flog.Debugf("UDP stream %d closed for %s -> %s", strm.SID(), caddr, f.targetAddr)
 		f.client.CloseUDP(k)
@@ -94,10 +94,9 @@ func (f *Forward) handleUDPStrm(ctx context.Context, k uint64, strm tr.Strm, con
 			return
 		default:
 		}
-		strm.SetWriteDeadline(time.Now().Add(5 * time.Second))
+		strm.SetDeadline(time.Now().Add(8 * time.Second))
 		err := buffer.CopyU(strm, conn, caddr)
-		strm.SetWriteDeadline(time.Time{})
-
+		strm.SetDeadline(time.Time{})
 		if err != nil {
 			flog.Errorf("UDP stream %d failed for %s -> %s: %v", strm.SID(), caddr, f.targetAddr, err)
 			return

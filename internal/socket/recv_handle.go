@@ -1,4 +1,4 @@
-package pconn
+package socket
 
 import (
 	"fmt"
@@ -24,7 +24,7 @@ func NewRecvHandle(cfg *conf.Network) (*RecvHandle, error) {
 		return nil, fmt.Errorf("failed to set pcap direction in: %v", err)
 	}
 
-	filter := fmt.Sprintf("tcp and dst port %d", cfg.LocalAddr.Port)
+	filter := fmt.Sprintf("tcp and dst port %d", cfg.Port)
 	if err := handle.SetBPFFilter(filter); err != nil {
 		return nil, fmt.Errorf("failed to set BPF filter: %w", err)
 	}

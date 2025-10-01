@@ -7,16 +7,16 @@ import (
 	"os/signal"
 	"paqet/internal/conf"
 	"paqet/internal/flog"
-	"paqet/internal/pconn"
-	"paqet/internal/tr"
-	"paqet/internal/tr/kcp"
+	"paqet/internal/socket"
+	"paqet/internal/tnet"
+	"paqet/internal/tnet/kcp"
 	"sync"
 	"syscall"
 )
 
 type Server struct {
 	cfg   *conf.Conf
-	pConn *pconn.PacketConn
+	pConn *socket.PacketConn
 	wg    sync.WaitGroup
 }
 
@@ -39,7 +39,7 @@ func (s *Server) Start() error {
 		cancel()
 	}()
 
-	pConn, err := pconn.New(ctx, &s.cfg.Network)
+	pConn, err := socket.New(ctx, &s.cfg.Network)
 	if err != nil {
 		return fmt.Errorf("could not create raw packet conn: %w", err)
 	}
@@ -61,7 +61,7 @@ func (s *Server) Start() error {
 	return nil
 }
 
-func (s *Server) listen(ctx context.Context, listener tr.Listener) {
+func (s *Server) listen(ctx context.Context, listener tnet.Listener) {
 	go func() {
 		<-ctx.Done()
 		listener.Close()

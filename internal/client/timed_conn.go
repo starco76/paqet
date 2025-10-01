@@ -4,16 +4,16 @@ import (
 	"context"
 	"fmt"
 	"paqet/internal/conf"
-	"paqet/internal/pconn"
 	"paqet/internal/protocol"
-	"paqet/internal/tr"
-	"paqet/internal/tr/kcp"
+	"paqet/internal/socket"
+	"paqet/internal/tnet"
+	"paqet/internal/tnet/kcp"
 	"time"
 )
 
 type timedConn struct {
 	cfg    *conf.Conf
-	conn   tr.Conn
+	conn   tnet.Conn
 	expire time.Time
 	ctx    context.Context
 }
@@ -29,9 +29,9 @@ func newTimedConn(ctx context.Context, cfg *conf.Conf) (*timedConn, error) {
 	return &tc, nil
 }
 
-func (tc *timedConn) createConn() (tr.Conn, error) {
+func (tc *timedConn) createConn() (tnet.Conn, error) {
 	netCfg := tc.cfg.Network
-	pConn, err := pconn.New(tc.ctx, &netCfg)
+	pConn, err := socket.New(tc.ctx, &netCfg)
 	if err != nil {
 		return nil, fmt.Errorf("could not create raw packet conn: %w", err)
 	}
@@ -47,7 +47,7 @@ func (tc *timedConn) createConn() (tr.Conn, error) {
 	return conn, nil
 }
 
-func (tc *timedConn) waitConn() tr.Conn {
+func (tc *timedConn) waitConn() tnet.Conn {
 	for {
 		if c, err := tc.createConn(); err == nil {
 			return c
@@ -57,11 +57,13 @@ func (tc *timedConn) waitConn() tr.Conn {
 	}
 }
 
-func (tc *timedConn) sendTCPF(conn tr.Conn) error {
+func (tc *timedConn) sendTCPF(conn tnet.Conn) error {
 	strm, err := conn.OpenStrm()
 	if err != nil {
 		return err
 	}
+	defer strm.Close()
+
 	p := protocol.Proto{Type: protocol.PTCPF, TCPF: tc.cfg.Network.TCP.RF}
 	err = p.Write(strm)
 	if err != nil {
@@ -70,27 +72,7 @@ func (tc *timedConn) sendTCPF(conn tr.Conn) error {
 	return nil
 }
 
-// func (tc *timedConn) sendTCPFP(ctx context.Context) {
-// 	ticker := time.NewTicker(1 * time.Second)
-// 	defer ticker.Stop()
-
-// 	for {
-// 		fmt.Println("ticker start ticked.")
-// 		select {
-// 		case <-ticker.C:
-// 			err := tc.sendTCPF(tc.conn)
-// 			if err != nil {
-// 				fmt.Println(err)
-// 			}
-// 			fmt.Println("ticker ticked.")
-// 		case <-ctx.Done():
-// 			fmt.Println("ctx ticker ticked.")
-// 			return
-// 		}
-// 	}
-// }
-
-func (tc *timedConn) Close() {
+func (tc *timedConn) close() {
 	if tc.conn != nil {
 		tc.conn.Close()
 	}
