@@ -1,6 +1,7 @@
 package kcp
 
 import (
+	"net"
 	"paqet/internal/conf"
 	"paqet/internal/socket"
 	"paqet/internal/tnet"
@@ -10,8 +11,9 @@ import (
 )
 
 type Listener struct {
-	cfg *conf.KCP
-	*kcp.Listener
+	packetConn *socket.PacketConn
+	cfg        *conf.KCP
+	listener   *kcp.Listener
 }
 
 func Listen(cfg *conf.KCP, pConn *socket.PacketConn) (tnet.Listener, error) {
@@ -24,11 +26,11 @@ func Listen(cfg *conf.KCP, pConn *socket.PacketConn) (tnet.Listener, error) {
 		return nil, err
 	}
 
-	return &Listener{cfg: cfg, Listener: l}, nil
+	return &Listener{packetConn: pConn, cfg: cfg, listener: l}, nil
 }
 
 func (l *Listener) Accept() (tnet.Conn, error) {
-	conn, err := l.Listener.AcceptKCP()
+	conn, err := l.listener.AcceptKCP()
 	if err != nil {
 		return nil, err
 	}
@@ -37,5 +39,19 @@ func (l *Listener) Accept() (tnet.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Conn{conn, sess}, nil
+	return &Conn{nil, conn, sess}, nil
+}
+
+func (l *Listener) Close() error {
+	if l.listener != nil {
+		l.listener.Close()
+	}
+	if l.packetConn != nil {
+		l.packetConn.Close()
+	}
+	return nil
+}
+
+func (l *Listener) Addr() net.Addr {
+	return l.listener.Addr()
 }

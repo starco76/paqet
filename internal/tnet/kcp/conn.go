@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"paqet/internal/protocol"
+	"paqet/internal/socket"
 	"paqet/internal/tnet"
 	"time"
 
@@ -12,8 +13,9 @@ import (
 )
 
 type Conn struct {
-	*kcp.UDPSession
-	*smux.Session
+	PacketConn *socket.PacketConn
+	UDPSession *kcp.UDPSession
+	Session    *smux.Session
 }
 
 func (c *Conn) OpenStrm() (tnet.Strm, error) {
@@ -63,8 +65,12 @@ func (c *Conn) Close() error {
 	if c.Session != nil {
 		c.Session.Close()
 	}
+	if c.PacketConn != nil {
+		c.PacketConn.Close()
+	}
 	return err
 }
+
 func (c *Conn) LocalAddr() net.Addr                { return c.Session.LocalAddr() }
 func (c *Conn) RemoteAddr() net.Addr               { return c.Session.RemoteAddr() }
 func (c *Conn) SetDeadline(t time.Time) error      { return c.Session.SetDeadline(t) }

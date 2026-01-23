@@ -29,12 +29,7 @@ func Dial(addr *net.UDPAddr, cfg *conf.KCP, pConn *socket.PacketConn) (tnet.Conn
 	if err != nil {
 		return nil, fmt.Errorf("failed to create smux session: %w", err)
 	}
-	// go func() {
-	// 	for {
-	// 		fmt.Println(sess.NumStreams())
-	// 		time.Sleep(1 * time.Second)
-	// 	}
-	// }()
+
 	flog.Debugf("smux session established successfully")
-	return &Conn{conn, sess}, nil
+	return &Conn{pConn, conn, sess}, nil
 }
