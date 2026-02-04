@@ -33,7 +33,7 @@ LOG_LEVEL=${LOG_LEVEL:-info}
 # -------------------------
 
 BASE_DIR=$(pwd)
-BIN_PATH="/usr/local/bin/paqet"
+BIN_PATH="$BASE_DIR/paqet"
 SERVICE_NAME="paqet-client-${KHARJ_IP//./-}"
 CONFIG_FILE="$BASE_DIR/client-${KHARJ_IP}.yaml"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
