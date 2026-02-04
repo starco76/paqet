@@ -32,13 +32,11 @@ LOG_LEVEL=${LOG_LEVEL:-info}
 # Paths & Names
 # -------------------------
 
-BASE_DIR="/opt/paqet"
+BASE_DIR=$(pwd)
 BIN_PATH="/usr/local/bin/paqet"
 SERVICE_NAME="paqet-client-${KHARJ_IP//./-}"
 CONFIG_FILE="$BASE_DIR/client-${KHARJ_IP}.yaml"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
-
-mkdir -p "$BASE_DIR"
 
 # -------------------------
 # Generate YAML
