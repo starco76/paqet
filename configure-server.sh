@@ -268,7 +268,7 @@ transport:
   conn: 1
   kcp:
     mode: "fast"
-    key: "$kcp_key"
+    key: "e4f1a7c9b2d84a0f9c3e7b6d1a5f9021"
 EOF
 
 log_step "Step 5: Finalizing"
