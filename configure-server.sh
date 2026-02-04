@@ -302,3 +302,45 @@ apply_rule "$rule3" "Drop kernel RST packets on port $listen_port"
 log_header "Setup Complete!"
 log_info "You can now run the server with:"
 echo -e "${BOLD}sudo ./paqet run -c $output_file${NC}"
+
+
+# -------------------------
+# Step 6: Create systemd service
+# -------------------------
+
+SERVICE_NAME="paqet-server-${output_file%.*}"
+SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+
+log_step "Step 6: Creating systemd service ($SERVICE_NAME)"
+
+sudo tee "$SERVICE_FILE" > /dev/null <<EOF
+[Unit]
+Description=Paqet Server ($output_file)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=$(pwd)/paqet run -c $(pwd)/$output_file
+Restart=always
+RestartSec=5
+LimitNOFILE=1048576
+WorkingDirectory=$(pwd)
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable "$SERVICE_NAME"
+sudo systemctl start "$SERVICE_NAME"
+
+log_success "Systemd service created and started: $SERVICE_NAME"
+
+echo ""
+log_info "Useful commands:"
+echo "  systemctl status $SERVICE_NAME"
+echo "  journalctl -u $SERVICE_NAME -f"
+echo "  systemctl restart $SERVICE_NAME"
